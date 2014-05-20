@@ -74,6 +74,9 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                             if os.path.isfile(os.path.normpath(file_dir + partial_filename + ext)):
                                 filename = "_" + filename + ext
                                 break
+                            if os.path.isfile(os.path.normpath(file_dir + "/" + fn_split[0] + "/_" + fn_split[1] + ext)):
+                                filename = fn_split[0] + "/_" + fn_split[1] + ext
+                                break
                         if chosen_setup.index and os.path.isfile(os.path.normpath(file_dir + "/" + filename + "/index" + ext)):
                             filename += "/index" + ext
                 try:
@@ -84,7 +87,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                     m = re.findall(compiled_regex, contents)
                     imported_vars = imported_vars + m
                 except:
-                    print('Could not load file ' + filename)
+                    print('Could not load file ' + os.path.normpath(file_dir + '/' + filename))
 
             # Convert a list of tuples to a list of lists
             imported_vars = [list(item) for item in imported_vars]
