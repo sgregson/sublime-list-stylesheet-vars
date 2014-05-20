@@ -118,12 +118,15 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
             self.variables[i] = val.split("|")
         self.variables = imported_vars + self.variables
         self.variables.sort()
+        for ndx, val in enumerate(self.variables):
+            self.variables[ndx][0] = str(self.variables[ndx][0] + "|" + self.variables[ndx][1])
         self.view.window().show_quick_panel(self.variables, self.insert_variable, sublime.MONOSPACE_FONT)
 
     def insert_variable(self, choice):
         if choice == -1:
             return
-        self.view.run_command('insert_text', {'string': self.variables[choice][0]})
+        insertion = self.variables[choice][0].split("|")
+        self.view.run_command('insert_text', {'string': insertion[0]})
 
 class InsertText(sublime_plugin.TextCommand):
     def run(self, edit, string=''):
