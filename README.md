@@ -25,7 +25,7 @@ the occurances of a variable.
 The plugin can be installed using the popular [Sublime Package Control](http://wbond.net/sublime_packages/package_control) 
 plugin.
 
-Alternatively you can execute the following command in your Sublime Packages folder: `git clone git://github.com/MaciekBaron/sublime-list-stylesheet-vars.git List\ Stylesheet\ Variables`
+Alternatively you can execute the following command in your Sublime Packages folder: `git clone git://github.com/sgregson/sublime-list-stylesheet-vars.git List\ Stylesheet\ Variables`
 
 ## Configuration
 The settings file has currently two options:
