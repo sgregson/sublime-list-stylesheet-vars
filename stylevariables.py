@@ -44,56 +44,12 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
         if chosen_setup == None:
             return
 
-        # Handle imports
-        imports = []
-        imported_vars = []
-
-        compiled_regex = re.compile(chosen_setup.regex, re.MULTILINE)
-
         if handle_imports:
-            self.view.find_all("@import [\"|\'](.*)[\"|\']", 0, "$1", imports)
-
-            file_dir = os.path.dirname(fn).decode("utf-8")
-
-            for i, filename in enumerate(imports):
-                has_extension = False
-                for ext in chosen_setup.extensions:
-                    if filename.endswith(ext.decode("utf-8")):
-                        has_extension = True
-
-                if has_extension == False:
-                    # We need to try and find the right extension
-                    for ext in chosen_setup.extensions:
-                        ext = ext.decode("utf-8")
-                        if os.path.isfile(os.path.normpath(file_dir + '/' + filename + ext)):
-                            filename += ext
-                            break
-                        if chosen_setup.partials:
-                            fn_split = os.path.split(filename)
-                            partial_filename = fn_split[0] + "/_" + fn_split[1]
-                            if os.path.isfile(os.path.normpath(file_dir + partial_filename + ext)):
-                                filename = "_" + filename + ext
-                                break
-                            if os.path.isfile(os.path.normpath(file_dir + "/" + fn_split[0] + "/_" + fn_split[1] + ext)):
-                                filename = fn_split[0] + "/_" + fn_split[1] + ext
-                                break
-                        if chosen_setup.index and os.path.isfile(os.path.normpath(file_dir + "/" + filename + "/index" + ext)):
-                            filename += "/index" + ext
-                try:
-                    f = open(os.path.normpath(file_dir + '/' + filename), 'r')
-                    contents = f.read()
-                    f.close()
-
-                    m = re.findall(compiled_regex, contents)
-                    imported_vars = imported_vars + m
-                except:
-                    print('Could not load file ' + os.path.normpath(file_dir + '/' + filename))
-
-            # Convert a list of tuples to a list of lists
-            imported_vars = [list(item) for item in imported_vars]
+            imported_vars = self.get_imports(fn, chosen_setup)
+        else:
+            imported_vars = []
 
         self.variables = []
-
         vars_from_views = []
 
         if read_all_views:
@@ -127,6 +83,63 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
             return
         insertion = self.variables[choice].split(" [")
         self.view.run_command('insert_text', {'string': insertion[0]})
+
+    def get_imports(self, fn, chosen_setup):
+        # Handle imports
+        imports = []
+        imported_vars = []
+
+        compiled_regex = re.compile(chosen_setup.regex, re.MULTILINE)
+
+        self.view.find_all("@import [\"|\'](.*)[\"|\']", 0, "$1", imports)
+
+        file_dir = os.path.dirname(fn).decode("utf-8")
+
+        for i, filename in enumerate(imports):
+            has_extension = False
+            for ext in chosen_setup.extensions:
+                if filename.endswith(ext.decode("utf-8")):
+                    has_extension = True
+
+            if has_extension == False:
+                # We need to try and find the right extension
+                for ext in chosen_setup.extensions:
+                    ext = ext.decode("utf-8")
+                    if os.path.isfile(os.path.normpath(file_dir + '/' + filename + ext)):
+                        filename += ext
+                        break
+                    if chosen_setup.partials:
+                        fn_split = os.path.split(filename)
+                        partial_filename = fn_split[0] + "/_" + fn_split[1]
+                        if os.path.isfile(os.path.normpath(file_dir + partial_filename + ext)):
+                            filename = "_" + filename + ext
+                            break
+                        if os.path.isfile(os.path.normpath(file_dir + "/" + fn_split[0] + "/_" + fn_split[1] + ext)):
+                            filename = fn_split[0] + "/_" + fn_split[1] + ext
+                            break
+                    if chosen_setup.index and os.path.isfile(os.path.normpath(file_dir + "/" + filename + "/index" + ext)):
+                        filename += "/index" + ext
+            try:
+                f = open(os.path.normpath(file_dir + '/' + filename), 'r')
+                contents = f.read()
+                f.close()
+
+                m = re.findall(compiled_regex, contents)
+                imported_vars = imported_vars + m
+            except:
+                print('Could not load file ' + os.path.normpath(file_dir + '/' + filename))
+
+            # find import statements in file contents
+            # grandparents = re.findall("@import [\"|\'](.*)[\"|\']", contents)
+            # if len(grandparents) > 0:
+            #     print("next parents: ")
+            #     for i, gp_name in enumerate(grandparents):
+            #         print( os.path.normpath(os.path.dirname(file_dir + '/' + filename) + "/" + gp_name) )
+
+        # Convert a list of tuples to a list of lists
+        imported_vars = [list(item) for item in imported_vars]
+
+        return imported_vars
 
 class InsertText(sublime_plugin.TextCommand):
     def run(self, edit, string=''):
