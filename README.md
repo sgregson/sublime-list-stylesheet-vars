@@ -32,6 +32,7 @@ The settings file has currently two options:
 
  - `readImported` (default: `true`) - decides whether the plugin should attempt to read imported files
  - `readAllViews` (default: `false`) - decides whether the plugin should attempt to read all opened files
+ - `readParents`  (default: `true`) - decides whether the plugin should attempt to read all grandparent @import files
 
 Currently if the plugin checks all opened files, it will only check for imported files in the currently
 selected file.
