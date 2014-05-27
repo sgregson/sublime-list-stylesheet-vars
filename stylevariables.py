@@ -35,7 +35,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
         chosen_setup = None
 
         self.edit = edit
-        fn = self.view.file_name().encode("utf_8")
+        fn = self.view.file_name().encode("utf-8")
 
         for setup in setups:
             for ext in setup.extensions:
@@ -50,10 +50,10 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
         self.paletteFormat = 'a'
         if handle_imports:
             self.view.find_all("@import [\"|\'](.*)[\"|\']", 0, "$1", imported_vars)
-            imported_vars = self.get_imports(fn, imported_vars, chosen_setup)
+            imported_vars = self.get_imports(self.view.file_name(), imported_vars, chosen_setup)
             if len(imported_vars) == 0:
                 # FOUND NO VARIABLES, DISPLAY ALL
-                splitpath = os.path.split(fn)
+                splitpath = os.path.split(self.view.file_name())
                 splitpath = splitpath[0].split('\\')
                 for i,seg in enumerate(splitpath):
                     if seg == "partials":
@@ -90,7 +90,6 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
         self.variables = imported_vars + self.variables
         self.variables.sort()
 
-        print self.paletteFormat
         if self.paletteFormat == 'a':
             # no subtext where one variable type defined
             for ndx, val in enumerate(self.variables):
@@ -115,7 +114,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
 
         compiled_regex = re.compile(chosen_setup.regex, re.MULTILINE)
 
-        file_dir = os.path.dirname(fn).decode("utf-8")
+        file_dir = os.path.dirname(fn)
 
         for i, filename in enumerate(imports):
             has_extension = False
@@ -149,7 +148,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                 m = re.findall(compiled_regex, contents)
                 for i,myVars in enumerate(m):
                     m[i] = myVars + (filename,)
-                print m
+
                 imported_vars = imported_vars + m
             except:
                 print('Could not load file ' + os.path.normpath(file_dir + '/' + filename))
@@ -160,7 +159,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                 if len(grandparents) > 0:
                     # print grandparents
                     for i, gp_name in enumerate(grandparents):
-                        imported_vars = imported_vars + self.get_imports(os.path.normpath(file_dir + '/' + filename).encode("utf_8"), grandparents, chosen_setup)
+                        imported_vars = imported_vars + self.get_imports(os.path.normpath(file_dir + '/' + filename), grandparents, chosen_setup)
 
         # Convert a list of tuples to a list of lists
         imported_vars = [list(item) for item in imported_vars]
