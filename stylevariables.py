@@ -134,7 +134,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                 if len(grandparents) > 0:
                     # print grandparents
                     for i, gp_name in enumerate(grandparents):
-                        imported_vars = imported_vars + self.get_imports(os.path.normpath(file_dir + '/' + filename), grandparents, chosen_setup)
+                        imported_vars = imported_vars + self.get_imports(os.path.normpath(file_dir + '/' + filename).encode("utf_8"), grandparents, chosen_setup)
 
         # Convert a list of tuples to a list of lists
         imported_vars = [list(item) for item in imported_vars]
