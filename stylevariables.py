@@ -47,9 +47,22 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
 
         # FIND VARIABLES RECURSIVELY THROUGH THE @IMPORT CHAIN
         imported_vars = []
+        self.paletteFormat = 'a'
         if handle_imports:
             self.view.find_all("@import [\"|\'](.*)[\"|\']", 0, "$1", imported_vars)
             imported_vars = self.get_imports(fn, imported_vars, chosen_setup)
+            if len(imported_vars) == 0:
+                # FOUND NO VARIABLES, DISPLAY ALL
+                splitpath = os.path.split(fn)
+                splitpath = splitpath[0].split('\\')
+                for i,seg in enumerate(splitpath):
+                    if seg == "partials":
+                        self.paletteFormat = 'b'
+                        variablesPath = '/'.join(splitpath[0:i+1]) + '/variables/'
+                        allVarFiles = [ f for f in os.listdir(variablesPath) if os.path.isfile(os.path.join(variablesPath,f)) ]
+                        imported_vars = self.get_imports(variablesPath, allVarFiles, chosen_setup)
+                        break;
+
 
         self.variables = []
         vars_from_views = []
@@ -76,8 +89,17 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
             self.variables[i] = val.split("|")
         self.variables = imported_vars + self.variables
         self.variables.sort()
-        for ndx, val in enumerate(self.variables):
-            self.variables[ndx] = str(self.variables[ndx][0] + " [" + self.variables[ndx][1] + "]")
+
+        print self.paletteFormat
+        if self.paletteFormat == 'a':
+            # no subtext where one variable type defined
+            for ndx, val in enumerate(self.variables):
+                self.variables[ndx] = str(self.variables[ndx][0] + " [" + self.variables[ndx][1] + "]")
+        else:
+            # subtext of filepath for variable
+            for ndx, val in enumerate(self.variables):
+                self.variables[ndx] = [str(self.variables[ndx][0] + " [" + self.variables[ndx][1] + "]"),self.variables[ndx][2]]
+
         self.view.window().show_quick_panel(self.variables, self.insert_variable, sublime.MONOSPACE_FONT)
 
     def insert_variable(self, choice):
@@ -85,6 +107,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
             return
         insertion = self.variables[choice].split(" [")
         self.view.run_command('insert_text', {'string': insertion[0]})
+
 
     def get_imports(self, fn, imports, chosen_setup):
         # Handle imports
@@ -124,6 +147,9 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                 f.close()
 
                 m = re.findall(compiled_regex, contents)
+                for i,myVars in enumerate(m):
+                    m[i] = myVars + (filename,)
+                print m
                 imported_vars = imported_vars + m
             except:
                 print('Could not load file ' + os.path.normpath(file_dir + '/' + filename))
