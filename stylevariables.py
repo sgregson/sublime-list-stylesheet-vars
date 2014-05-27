@@ -21,6 +21,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
 
         handle_imports = settings.get("readImported")
         read_all_views = settings.get("readAllViews")
+        self.read_parents   = settings.get("readParents")
 
         # Define setups
         less_setup = StyleSheetSetup((b'.less', b'.lessimport'), "(@[^\s\\]]*)\s*: *(.*);")
@@ -128,11 +129,12 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                 print('Could not load file ' + os.path.normpath(file_dir + '/' + filename))
 
             # recursively find ancestor import statements
-            grandparents = re.findall("(?<=@import [\"|\'])(.*)(?=[\"|\'])", contents)
-            if len(grandparents) > 0:
-                # print grandparents
-                for i, gp_name in enumerate(grandparents):
-                    imported_vars = imported_vars + self.get_imports(os.path.normpath(file_dir + '/' + filename), grandparents, chosen_setup)
+            if self.read_parents:
+                grandparents = re.findall("(?<=@import [\"|\'])(.*)(?=[\"|\'])", contents)
+                if len(grandparents) > 0:
+                    # print grandparents
+                    for i, gp_name in enumerate(grandparents):
+                        imported_vars = imported_vars + self.get_imports(os.path.normpath(file_dir + '/' + filename), grandparents, chosen_setup)
 
         # Convert a list of tuples to a list of lists
         imported_vars = [list(item) for item in imported_vars]
