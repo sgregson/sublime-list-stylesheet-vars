@@ -44,10 +44,11 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
         if chosen_setup == None:
             return
 
+        # FIND VARIABLES RECURSIVELY THROUGH THE @IMPORT CHAIN
+        imported_vars = []
         if handle_imports:
-            imported_vars = self.get_imports(fn, chosen_setup)
-        else:
-            imported_vars = []
+            self.view.find_all("@import [\"|\'](.*)[\"|\']", 0, "$1", imported_vars)
+            imported_vars = self.get_imports(fn, imported_vars, chosen_setup)
 
         self.variables = []
         vars_from_views = []
@@ -84,14 +85,11 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
         insertion = self.variables[choice].split(" [")
         self.view.run_command('insert_text', {'string': insertion[0]})
 
-    def get_imports(self, fn, chosen_setup):
+    def get_imports(self, fn, imports, chosen_setup):
         # Handle imports
-        imports = []
         imported_vars = []
 
         compiled_regex = re.compile(chosen_setup.regex, re.MULTILINE)
-
-        self.view.find_all("@import [\"|\'](.*)[\"|\']", 0, "$1", imports)
 
         file_dir = os.path.dirname(fn).decode("utf-8")
 
@@ -129,12 +127,12 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
             except:
                 print('Could not load file ' + os.path.normpath(file_dir + '/' + filename))
 
-            # find import statements in file contents
-            # grandparents = re.findall("@import [\"|\'](.*)[\"|\']", contents)
-            # if len(grandparents) > 0:
-            #     print("next parents: ")
-            #     for i, gp_name in enumerate(grandparents):
-            #         print( os.path.normpath(os.path.dirname(file_dir + '/' + filename) + "/" + gp_name) )
+            # recursively find ancestor import statements
+            grandparents = re.findall("(?<=@import [\"|\'])(.*)(?=[\"|\'])", contents)
+            if len(grandparents) > 0:
+                # print grandparents
+                for i, gp_name in enumerate(grandparents):
+                    imported_vars = imported_vars + self.get_imports(os.path.normpath(file_dir + '/' + filename), grandparents, chosen_setup)
 
         # Convert a list of tuples to a list of lists
         imported_vars = [list(item) for item in imported_vars]
