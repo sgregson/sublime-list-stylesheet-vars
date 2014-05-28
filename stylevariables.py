@@ -104,7 +104,12 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
     def insert_variable(self, choice):
         if choice == -1:
             return
-        insertion = self.variables[choice].split(" [")
+        if self.paletteFormat == 'a':
+            target = self.variables[choice]
+        else:
+            target = self.variables[choice][0]
+
+        insertion = target.split(" [")
         self.view.run_command('insert_text', {'string': insertion[0]})
 
 
