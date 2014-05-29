@@ -108,7 +108,8 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
         if self.paletteFormat == 'a':
             # no subtext where one variable type defined
             for ndx, val in enumerate(self.variables):
-                self.variables[ndx] = str(val[0] + " [" + val[1] + "]")
+                rep = maxlen[0] - len(val[0])
+                self.variables[ndx] = str(val[0] + (" " * rep) + " [" + val[1] + "]")
         else:
             # subtext of filepath for variable
             for ndx, val in enumerate(self.variables):
