@@ -1,5 +1,9 @@
 import sublime, sublime_plugin, os, re
 
+def debug(content):
+  if True:
+    print(content)
+
 class StyleSheetSetup:
     def __init__(self, extensions, regex, partials=None, index=None):
         if partials is None:
@@ -48,7 +52,6 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
         # ----------------------------------------------------
         # FIND VARIABLES RECURSIVELY THROUGH THE @IMPORT CHAIN
         imported_vars = []
-        self.paletteFormat = 'a'
         if handle_imports:
             self.view.find_all("@import [\"|\'](.*)[\"|\']", 0, "$1", imported_vars)
             imported_vars = self.get_imports(self.view.file_name(), imported_vars, chosen_setup)
@@ -60,7 +63,6 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                 splitpath = splitpath[0].split('\\')
                 for i,seg in enumerate(splitpath):
                     if seg == "partials":
-                        self.paletteFormat = 'b'
                         variablesPath = '/'.join(splitpath[0:i+1]) + '/variables/'
                         allVarFiles = [ f for f in os.listdir(variablesPath) if os.path.isfile(os.path.join(variablesPath,f)) ]
                         imported_vars = self.get_imports(variablesPath, allVarFiles, chosen_setup)
@@ -83,6 +85,9 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                         break;
         else:
             self.view.find_all(chosen_setup.regex, 0, "$1|$2", self.variables)
+            viewfn = re.sub("(_var_)|(_global_)","", os.path.split(self.view.file_name())[1].split('.')[0]);
+            for i,val in enumerate(self.variables):
+                self.variables[i] += "|" + viewfn;
 
 
 
@@ -91,12 +96,17 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
         for i, val in enumerate(self.variables):
             self.variables[i] = val.split("|")
         self.variables = imported_vars + self.variables
+
+        # Make Unique and Sort
+        self.variables = [list(x) for x in set(tuple(x) for x in self.variables)]
         self.variables.sort()
 
+        debug(self.variables)
         #Determine maxlength for right-alignment
-        #[name,value,file]
-        maxlen = [0,0,0]
-        for val in self.variables:
+        maxlen = [0,0,0]    #[name,value,file]
+        for i, val in enumerate(self.variables):
+            self.variables[i][1] = re.sub("!default","!d", val[1])
+            debug(self.variables[i])
             if len(val[0]) > maxlen[0]:
                 maxlen[0] = len(val[0])
             if len(val[1]) > maxlen[1]:
@@ -105,25 +115,16 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                 maxlen[2] = len(val[2])
 
         # Create Quick Panel Layout
-        if self.paletteFormat == 'a':
-            # no subtext where one variable type defined
-            for ndx, val in enumerate(self.variables):
-                rep = maxlen[0] - len(val[0])
-                self.variables[ndx] = str(val[0] + (" " * rep) + " [" + val[1] + "]")
-        else:
-            # subtext of filepath for variable
-            for ndx, val in enumerate(self.variables):
-                rep = (maxlen[0] - len(val[0]), maxlen[1] - len(val[1]), maxlen[2] - len(val[2]))
-                # for subtext, use self.variables[ndx] = [main,subtext]
-                self.variables[ndx] = str(val[0] + (" " * rep[0]) + " [" + val[1] + "]  " + (" " * (rep[1]+rep[2])) + val[2])
+        for ndx, val in enumerate(self.variables):
+            rep = (maxlen[0] - len(val[0]), maxlen[1] - len(val[1]), maxlen[2] - len(val[2]))
+            # for subtext, use self.variables[ndx] = [main,subtext]
+            self.variables[ndx] = str(val[0] + (" " * rep[0]) + " [" + val[1] + "]  " + (" " * (rep[1]+rep[2])) + val[2])
 
         self.view.window().show_quick_panel(self.variables, self.insert_variable, sublime.MONOSPACE_FONT)
 
     def insert_variable(self, choice):
         if choice == -1:
             return
-        if self.paletteFormat == 'a':
-            target = self.variables[choice]
         else:
             target = self.variables[choice] #[0] #if subtext option
 
@@ -171,7 +172,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                 m = re.findall(compiled_regex, contents)
                 # Add Filename to tuple
                 for i,myVars in enumerate(m):
-                    m[i] = myVars + (re.sub("(_var_)|(_global_)","",os.path.split(filename)[1].split('.')[0]),)
+                    m[i] = myVars + ("@" + re.sub("(_var_)|(_global_)","",os.path.split(filename)[1].split('.')[0]),)
 
                 imported_vars = imported_vars + m
             except:
