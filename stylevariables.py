@@ -29,7 +29,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
 
         # Define setups
         less_setup = StyleSheetSetup((b'.less', b'.lessimport'), "(@[^\s\\]]*)\s*: *(.*);")
-        sass_setup = StyleSheetSetup((b'.sass', b'.scss'), "^\s*(\$[^\s\\]{}]*)\s*: *([^;\n]*);?", True) # Last argument True because using partials
+        sass_setup = StyleSheetSetup((b'.sass', b'.scss', b'.css.scss'), "^\s*(\$[^\s\\]{}]*)\s*: *([^;\n]*);?", True) # Last argument True because using partials
         stylus_setup = StyleSheetSetup((b'.styl',), "^\s*([^\s\\]\[]*) *= *([^;\n]*)", False, True)
         sass_erb_setup = StyleSheetSetup((b'.scss.erb', b'.sass.erb'), "^\s*(\$[^\s\\]{}]*)\s*: <?%?=? *([^;\n]*);? [\%>]?", True)
 
@@ -142,6 +142,7 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
 
         for i, filename in enumerate(imports):
             has_extension = False
+
             for ext in chosen_setup.extensions:
                 if filename.endswith(ext.decode("utf-8")):
                     has_extension = True
@@ -150,20 +151,26 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                 # We need to try and find the right extension
                 for ext in chosen_setup.extensions:
                     ext = ext.decode("utf-8")
+
+                    # just adding the extension at the end
                     if os.path.isfile(os.path.normpath(file_dir + '/' + filename + ext)):
                         filename += ext
                         break
+
                     if chosen_setup.partials:
                         fn_split = os.path.split(filename)
                         partial_filename = fn_split[0] + "/_" + fn_split[1]
-                        if os.path.isfile(os.path.normpath(file_dir + partial_filename + ext)):
-                            filename = "_" + filename + ext
+                        # above + adding an _ before the filename (partials)
+                        if os.path.isfile(os.path.normpath(file_dir +  partial_filename + ext)):
+                            filename = partial_filename + ext
                             break
-                        if os.path.isfile(os.path.normpath(file_dir + "/" + fn_split[0] + "/_" + fn_split[1] + ext)):
-                            filename = fn_split[0] + "/_" + fn_split[1] + ext
+                        # above plus adding a / at the beginning (relative paths)
+                        if os.path.isfile(os.path.normpath(file_dir + "/" + partial_filename + ext)):
+                            filename = partial_filename + ext
                             break
                     if chosen_setup.index and os.path.isfile(os.path.normpath(file_dir + "/" + filename + "/index" + ext)):
                         filename += "/index" + ext
+                        break
             try:
                 f = open(os.path.normpath(file_dir + '/' + filename), 'r')
                 contents = f.read()
@@ -175,16 +182,17 @@ class ListStylesheetVariables(sublime_plugin.TextCommand):
                     m[i] = myVars + ("@" + re.sub("(_var_)|(_global_)","",os.path.split(filename)[1].split('.')[0]),)
 
                 imported_vars = imported_vars + m
-            except:
-                print('Could not load file ' + os.path.normpath(file_dir + '/' + filename))
 
-            # recursively find ancestor import statements
-            if self.read_parents:
-                grandparents = re.findall("(?<=@import [\"|\'])(.*)(?=[\"|\'])", contents)
-                if len(grandparents) > 0:
-                    # print grandparents
-                    for i, gp_name in enumerate(grandparents):
-                        imported_vars = imported_vars + self.get_imports(os.path.normpath(file_dir + '/' + filename), grandparents, chosen_setup)
+                # recursively find ancestor import statements
+                if self.read_parents:
+                    grandparents = re.findall("(?<=@import [\"|\'])(.*)(?=[\"|\'])", contents)
+                    if len(grandparents) > 0:
+                        # print grandparents
+                        for i, gp_name in enumerate(grandparents):
+                            imported_vars = imported_vars + self.get_imports(os.path.normpath(file_dir + '/' + filename), grandparents, chosen_setup)
+            except:
+                print('Could not load file ' + os.path.normpath(file_dir + '/' + filename) + ' from: ' + fn)
+
 
         # Convert a list of tuples to a list of lists
         imported_vars = [list(item) for item in imported_vars]
